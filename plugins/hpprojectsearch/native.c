@@ -108,7 +108,10 @@ static int msleep(int miliseconds) {
   #if _WIN32
     Sleep(miliseconds);
   #else
-    usleep(miliseconds * 1000);
+    struct timespec duration;
+    duration.tv_sec = 0;
+    duration.tv_nsec = miliseconds * 1000 * 1000;
+    nanosleep(&duration, NULL);
   #endif
 }
 
