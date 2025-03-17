@@ -115,7 +115,7 @@ static int msleep(int miliseconds) {
 #define SEARCH_CONTEXT_LENGTH 80
 #define MAX_SEARCH_HIT_LENGTH 256
 #define MAX_SEARCH_STRING MAX_SEARCH_HIT_LENGTH
-#define CHUNK_SIZE 8192
+#define CHUNK_SIZE 16384
 
 typedef struct {
   int found_idx;
@@ -172,12 +172,17 @@ static void* thread_callback(void* data) {
         while (1) {
           int length_to_read = sizeof(chunk) - offset;
           int length_read = fread(&chunk[offset], 1, length_to_read, file);
-          for (int i = 0; i < length_read - search_length - SEARCH_CONTEXT_LENGTH; ++i) {
+          if (length_read <= 0)
+            break;
+          int total_length = offset + length_read;
+          if (total_length < search_length)
+            break;
+          int max_length_to_search = imax(total_length - search_length - SEARCH_CONTEXT_LENGTH, search_length);
+          for (int i = 0; i < max_length_to_search; ++i, ++col) {
             if (chunk[i] == '\n') {
               line++;
               col = 1;
             }
-            col++;
             int match = 1;
             switch (state->type) {
               case SEARCH_PLAIN:
@@ -202,7 +207,7 @@ static void* thread_callback(void* data) {
                 }
                 state->matches[state->match_count].found_idx = targeted_entry;
                 state->matches[state->match_count].line = line;
-                state->matches[state->match_count].col = col;
+                state->matches[state->match_count].col = col - 1;
                 int start = imax(i - SEARCH_CONTEXT_LENGTH, 0);
                 for (int j = i; j >= start; --j) {
                   if (chunk[j] == '\n') {
@@ -225,8 +230,8 @@ static void* thread_callback(void* data) {
           if (length_read < length_to_read) {
             break;
           } else {
-            memcpy(chunk, &chunk[length_read - search_length - SEARCH_CONTEXT_LENGTH], search_length + SEARCH_CONTEXT_LENGTH);
-            offset = search_length + SEARCH_CONTEXT_LENGTH;
+            memcpy(chunk, &chunk[max_length_to_search], sizeof(chunk) - max_length_to_search);
+            offset = sizeof(chunk) - max_length_to_search;
           }
         }
         fclose(file);
