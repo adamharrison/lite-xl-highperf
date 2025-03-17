@@ -86,6 +86,5 @@ jobs:
         LPM_DISCORD_WEBHOOK: "${{ secrets.DISCORD_WEBHOOK }}"
       run: |
         wget https://github.com/lite-xl/lite-xl-plugin-manager/releases/download/latest/lpm.x86_64-linux -O lpm-latest && chmod +x lpm-latest
-        find .
-        ./lpm-latest gh release Linux/plugins/*/*.so MacOS/plugins/*/*.so Windows/plugins/*/*.dll
+        ./lpm-latest gh release Linux/*/*.so MacOS/*/*.so Windows/*/*.dll
 
