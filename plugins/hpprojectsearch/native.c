@@ -1,7 +1,9 @@
 #if _WIN32
   #include <windows.h>
 #else
-  #include <linux/limits.h>
+  #ifndef __APPLE__
+    #include <linux/limits.h>
+  #endif
   #include <pthread.h>
   #include <unistd.h>
   #define MAX_PATH PATH_MAX
