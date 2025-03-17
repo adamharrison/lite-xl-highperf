@@ -4,7 +4,7 @@ local config = require "core.config"
 local common = require "core.common"
 local core = require "core"
 
-local native = require ".native"
+local hpsearch = require ".hpprojectsearch"
 local projectsearch = require "plugins.projectsearch"
 
 config.plugins.projectsearch = common.merge({
@@ -24,7 +24,7 @@ function ResultsView:begin_search(path, text, fn)
     self.search_started = system.get_time()
     self.selected_idx = 0
 
-    local search = native.init(config.plugins.projectsearch.threads, text, fn, function(file, line, col, text)
+    local search = hpsearch.init(config.plugins.projectsearch.threads, text, fn, function(file, line, col, text)
       if col < 80 then
         table.insert(self.results, { file = file, text = text, line = line, col = col })
       else

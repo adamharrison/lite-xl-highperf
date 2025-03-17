@@ -359,20 +359,20 @@ static const luaL_Reg search_api[] = {
   { NULL,            NULL                }
 };
 
-#ifndef HIGHPERFSEARCH_VERSION
-  #define HIGHPERFSEARCH_VERSION "unknown"
+#ifndef HIGHPERF_VERSION
+  #define HIGHPERF_VERSION "unknown"
 #endif
 
 
 #ifndef HIGHPERFSEARCH_STANDALONE
-int luaopen_lite_xl_native(lua_State* L, void* XL) {
+int luaopen_lite_xl_hpprojectsearch(lua_State* L, void* XL) {
   lite_xl_plugin_init(XL);
 #else
-int luaopen_native(lua_State* L) {
+int luaopen_hpprojectsearch(lua_State* L) {
 #endif
   luaL_newmetatable(L, "highperfsearch");
   luaL_setfuncs(L, search_api, 0);
-  lua_pushliteral(L, HIGHPERFSEARCH_VERSION);
+  lua_pushliteral(L, HIGHPERF_VERSION);
   lua_setfield(L, -2, "version");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");

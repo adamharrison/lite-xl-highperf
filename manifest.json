@@ -1,5 +1,5 @@
 {
-  "id": "projectsearch-highperf",
-  "path": "plugins/projectsearch",
+  "id": "hpprojectsearch",
+  "path": "plugins/hpprojectsearch",
   "tags": ["performance"]
 }
