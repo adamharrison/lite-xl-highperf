@@ -1,6 +1,7 @@
 #if _WIN32
   #include <windows.h>
 #else
+  #include <linux/limits.h>
   #include <pthread.h>
   #include <unistd.h>
   #define MAX_PATH PATH_MAX
@@ -80,6 +81,15 @@ static void unlock_mutex(mutex_t* mutex) {
     pthread_mutex_unlock(&mutex->mutex);
   #endif
 }
+
+#if _WIN32
+static DWORD windows_thread_callback(void* data) {
+  thread_t* thread = data;
+  thread->data = thread->func(thread->data);
+  return 0;
+}
+#endif
+
 
 static thread_t* create_thread(void* (*func)(void*), void* data) {
   thread_t* thread = malloc(sizeof(thread_t));
