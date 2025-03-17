@@ -30,7 +30,7 @@ jobs:
         run: docker run -v .:/highperf ubuntu:14.04 bash -c 'cd /highperf && apt-get update && apt-get install -y gcc-4.8 gcc-4.8-aarch64-linux-gnu && SUFFIX=aarch64-linux.so CC=aarch64-linux-gnu-gcc-4.8 ./build.sh -std=gnu99 -O3 -DHIGHPERF_VERSION=\"${{ needs.version.outputs.version }}-aarch64-linux\" && CC=gcc-4.8 SUFFIX=x86_64-linux.so ./build.sh -std=gnu99 -O3 -DHIGHPERF_VERSION=\"${{ needs.version.outputs.version }}-x86_64-linux\" '
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-        with: { name: "Linux", path: "src/hpprojectsearch/*.so" }
+        with: { name: "Linux", path: "plugins/*/*.so" }
 
   build_windows:
     needs: [version]
@@ -46,7 +46,7 @@ jobs:
         run: sudo apt-get install mingw-w64 && SUFFIX=x86_64-windows.dll CC=x86_64-w64-mingw32-gcc ./build.sh -O3 -DHIGHPERF_VERSION='"'${{ needs.version.outputs.version }}-x86_64-windows'"'
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-        with: { name: "Windows", path: "src/hpprojectsearch/*.dll" }
+        with: { name: "Windows", path: "plugins/*/*.dll" }
 
   build_macos:
     needs: [version]
@@ -65,7 +65,7 @@ jobs:
           SUFFIX=aarch64-darwin.so CC=clang CFLAGS="-arch arm64" ./build.sh -O3 -DHIGHPERF_VERSION='"'${{ needs.version.outputs.version }}-x86_64-darwin'"'
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-        with: { name: "MacOS", path: "src/hpprojectsearch/*.so" }
+        with: { name: "MacOS", path: "plugins/*/*.so" }
 
 
   finalize:
