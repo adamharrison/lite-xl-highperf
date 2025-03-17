@@ -1,5 +1,9 @@
 -- mod-version:4
 
+local config = require "core.config"
+local common = require "core.common"
+local core = require "core"
+
 local native = require ".native"
 local projectsearch = require "plugins.projectsearch"
 
@@ -8,7 +12,8 @@ config.plugins.projectsearch = common.merge({
 }, config.plugins.projectsearch)
 
 local ResultsView = projectsearch.ResultsView
-local old_begin_search = ResultsView:begin_search
+local old_begin_search = ResultsView.begin_search
+
 function ResultsView:begin_search(path, text, fn)
   if type(fn) == "string" then
     self.search_args = { path, text, fn }
@@ -16,10 +21,15 @@ function ResultsView:begin_search(path, text, fn)
     self.last_file_idx = 1
     self.query = text
     self.searching = true
+    self.search_started = system.get_time()
     self.selected_idx = 0
 
-    local search = native.init(config.plugins.threads, text, fn, function(file, line, col, text)
-      table.insert(self.results, { file = file, text = text, line = n, col = s })
+    local search = native.init(config.plugins.projectsearch.threads, text, fn, function(file, line, col, text)
+      if col < 80 then
+        table.insert(self.results, { file = file, text = text, line = line, col = col })
+      else
+        table.insert(self.results, { file = file, text = "..." .. text, line = line, col = col })
+      end
     end)
     core.add_thread(function()
       local i = 1
@@ -33,6 +43,7 @@ function ResultsView:begin_search(path, text, fn)
         end
       end
       search:join()
+      self.search_total_time = system.get_time() - self.search_started
       self.searching = false
       self.brightness = 100
       core.redraw = true

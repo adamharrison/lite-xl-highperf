@@ -10,5 +10,5 @@ LDFLAGS=""
 [[ $OSTYPE != 'msys'* && $CC != *'mingw'* ]] && LDFLAGS="$LDFLAGS -lutil"
 
 for d in plugins/*; do
-  $CC $CFLAGS d/*.c $@ -shared -o d/native.so
+  $CC $CFLAGS $d/*.c $@ -shared -o $d/native.so
 done

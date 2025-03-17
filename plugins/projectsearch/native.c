@@ -2,6 +2,8 @@
   #include <windows.h>
 #else
   #include <pthread.h>
+  #include <unistd.h>
+  #define MAX_PATH PATH_MAX
 #endif
 #include <stdint.h>
 #include <stdio.h>
@@ -23,6 +25,8 @@
   #include <lite_xl_plugin_api.h>
 #endif
 
+int imax(int a, int b) { return a > b ? a : b; }
+int imin(int a, int b) { return a < b ? a : b; }
 
 typedef struct {
   #if _WIN32
@@ -131,8 +135,8 @@ typedef enum {
 
 typedef struct {
   int callback_function;
-  mutex_t mutex;
-  thread_t* threads;
+  mutex_t* mutex;
+  thread_t** threads;
   int threads_complete;
   int thread_count;
   int entry_start;
@@ -151,7 +155,7 @@ typedef struct {
 
 static void* thread_callback(void* data) {
   search_state_t* state = data;
-  char chunk[8192]
+  char chunk[CHUNK_SIZE];
   int search_length = strlen(state->search_string);
   while (state->entry_start < state->entry_count || !state->is_done) {
     int targeted_entry = -1;
@@ -160,56 +164,73 @@ static void* thread_callback(void* data) {
       targeted_entry = state->entry_start++;
     unlock_mutex(state->mutex);
     if (targeted_entry != -1) {
-      FILE* file = fopen(state->entries[targeted_entry]->path, "rb");
-      int line = 1;
-      int col = 1;
-      int offset = 0;
-      while (1) {
-        int length_read = fread(&chunk[offset], 1, sizeof(chunk), file);
-        for (int i = 0; i < length_read - search_length - SEARCH_CONTEXT_LENGTH; ++i) {
-          if (chunk[i] == '\n') {
-            line++;
-            col = 1;
-          }
-          col++;
-          int match = 1;
-          switch (state->type) {
-            case SEARCH_PLAIN:
-              if (strncmp(&chunk[i], state->search_string), search_legnth) != 0) {
-                match = 0;
-              }
-            break;
-            case SEARCH_INSENSITIVE:
-              for (int j = 0; j < search_length; ++j) {
-                if (tolower(chunk[i]) != state->search_string[j]) {
-                    match = 0;
-                    break;
+      FILE* file = fopen(state->entries[targeted_entry].path, "rb");
+      if (file) {
+        int line = 1;
+        int col = 1;
+        int offset = 0;
+        while (1) {
+          int length_to_read = sizeof(chunk) - offset;
+          int length_read = fread(&chunk[offset], 1, length_to_read, file);
+          for (int i = 0; i < length_read - search_length - SEARCH_CONTEXT_LENGTH; ++i) {
+            if (chunk[i] == '\n') {
+              line++;
+              col = 1;
+            }
+            col++;
+            int match = 1;
+            switch (state->type) {
+              case SEARCH_PLAIN:
+                if (strncmp(&chunk[i], state->search_string, search_length) != 0) {
+                  match = 0;
                 }
-              }
+              break;
+              case SEARCH_INSENSITIVE:
+                for (int j = 0; j < search_length; ++j) {
+                  if (tolower(chunk[i+j]) != state->search_string[j]) {
+                      match = 0;
+                      break;
+                  }
+                }
+              break;
+            }
+            if (match) {
+              lock_mutex(state->mutex);
+                if (state->match_count == state->match_capacity) {
+                  state->match_capacity = imax(1, state->match_capacity * 2);
+                  state->matches = realloc(state->matches, sizeof(match_entry_t)*state->match_capacity);
+                }
+                state->matches[state->match_count].found_idx = targeted_entry;
+                state->matches[state->match_count].line = line;
+                state->matches[state->match_count].col = col;
+                int start = imax(i - SEARCH_CONTEXT_LENGTH, 0);
+                for (int j = i; j >= start; --j) {
+                  if (chunk[j] == '\n') {
+                    start = j + 1;
+                    break;
+                  }
+                }
+                int max_length = imin(MAX_SEARCH_HIT_LENGTH, length_read - start);
+                for (int j = 0; j < max_length; ++j) {
+                  if (chunk[start+j] == '\n') {
+                    max_length = j;
+                    break;
+                  }
+                }
+                strncpy(state->matches[state->match_count].text, &chunk[start], max_length);
+                ++state->match_count;
+              unlock_mutex(state->mutex);
+            }
+          }
+          if (length_read < length_to_read) {
             break;
-          }
-          if (match) {
-            lock_mutex(state->mutex);
-              if (state->match_count == state->match_capacity) {
-                state->match_capacity = max(1, state->match_capacity * 2);
-                state->matches = realloc(state->matches, sizeof(match_entry_t)*state->match_capacity);
-              }
-              state->matches[state->match_count]->found_idx = targeted_entry;
-              state->matches[state->match_count]->line = line;
-              state->matches[state->match_count]->col = col;
-              strncpy(state->matches[state->match_count]->text, &chunk[i], SEARCH_CONTEXT_LENGTH);
-              ++state->match_count;
-            unlock_mutex(state->mutex);
+          } else {
+            memcpy(chunk, &chunk[length_read - search_length - SEARCH_CONTEXT_LENGTH], search_length + SEARCH_CONTEXT_LENGTH);
+            offset = search_length + SEARCH_CONTEXT_LENGTH;
           }
         }
-        if (length_read == sizeof(chunk)) {
-          break;
-        } else {
-          memcpy(chunk, &chunk[length_read - search_length - SEARCH_CONTEXT_LENGTH], search_length + SEARCH_CONTEXT_LENGTH);
-          offset = search_length + SEARCH_CONTEXT_LENGTH;
-        }
+        fclose(file);
       }
-      fclose(file);
     } else {
       msleep(1);
     }
@@ -226,27 +247,19 @@ static int f_search_update(lua_State* L) {
     lock_mutex(state->mutex);
       for (int i = 0; i < state->match_count; ++i) {
         match_entry_t* match = &state->matches[i];
-        lua_pushstring(L, state->entries[match->found_idx]->path);
+        lua_pushvalue(L, -1);
+        lua_pushstring(L, state->entries[match->found_idx].path);
         lua_pushinteger(L, match->line);
         lua_pushinteger(L, match->col);
         lua_pushstring(L, match->text);
-        lua_pcall(L, 4, 0, 0);
+        lua_call(L, 4, 0);
       }
       state->match_count = 0;
     unlock_mutex(state->mutex);
+    lua_pop(L, 1);
   }
 }
 
-static int f_search_gc(lua_State* L) {
-  search_state_t* state = luaL_checkudata(L, 1, "highperfsearch");
-  f_search_join(L);
-  free(state->threads);
-  if (state->matches)
-    free(state->matches);
-  if (state->entries)
-    free(state->entries);
-  return 0;
-}
 
 static int f_search_init(lua_State* L) {
   int threads = luaL_checkinteger(L, 1);
@@ -262,17 +275,18 @@ static int f_search_init(lua_State* L) {
   luaL_checktype(L, 4, LUA_TFUNCTION);
   int ref = luaL_ref(L, LUA_REGISTRYINDEX);
   search_state_t* state = lua_newuserdata(L, sizeof(search_state_t));
+  memset(state, 0, sizeof(search_state_t));
   luaL_setmetatable(L, "highperfsearch");
   state->type = type;
-  state->L = L;
   state->callback_function = ref;
+  state->mutex = new_mutex();
   state->thread_count = threads;
   strncpy(state->search_string, search_string, sizeof(state->search_string) - 1);
   if (type == SEARCH_INSENSITIVE) {
     for (int i = 0; i < strlen(state->search_string); ++i)
       state->search_string[i] = tolower(state->search_string[i]);
   }
-  state->threads = malloc(sizeof(thread_t) * threads);
+  state->threads = malloc(sizeof(thread_t*) * threads);
   for (int i = 0; i < threads; ++i)
     state->threads[i] = create_thread(thread_callback, state);
   return 1;
@@ -287,10 +301,10 @@ static int f_search_find(lua_State* L) {
   f_search_update(L);
   lock_mutex(state->mutex);
     if (state->entry_count == state->entry_capacity) {
-      state->entry_capacity = max(1, state->entry_capacity * 2);
+      state->entry_capacity = imax(1, state->entry_capacity * 2);
       state->entries = realloc(state->entries, sizeof(file_entry_t)*state->entry_capacity);
     }
-    strcpy(state->entries[state->entry_count]->path, path);
+    strcpy(state->entries[state->entry_count].path, path);
     state->entry_count++;
   unlock_mutex(state->mutex);
   return 0;
@@ -298,7 +312,7 @@ static int f_search_find(lua_State* L) {
 
 static int f_search_joink(lua_State* L, int status, lua_KContext ctx) {
   search_state_t* state = luaL_checkudata(L, 1, "highperfsearch");
-  if (state->threads_complete == state->threads) {
+  if (state->threads_complete == state->thread_count) {
     for (int i = 0; i < state->thread_count; ++i) {
       if (state->threads[i]) {
         join_thread(state->threads[i]);
@@ -319,6 +333,17 @@ static int f_search_join(lua_State* L) {
   return lua_yieldk(L, 1, 0, f_search_joink);
 }
 
+static int f_search_gc(lua_State* L) {
+  search_state_t* state = luaL_checkudata(L, 1, "highperfsearch");
+  f_search_join(L);
+  free(state->threads);
+  free_mutex(state->mutex);
+  if (state->matches)
+    free(state->matches);
+  if (state->entries)
+    free(state->entries);
+  return 0;
+}
 
 // Core functions, `request` is the primary function, and is stateless (minus the ssl config), and makes raw requests.
 static const luaL_Reg search_api[] = {
@@ -329,8 +354,8 @@ static const luaL_Reg search_api[] = {
   { NULL,            NULL                }
 };
 
-#ifndef HIGHPERF_VERSION
-  #define HIGHPERF_VERSION "unknown"
+#ifndef HIGHPERFSEARCH_VERSION
+  #define HIGHPERFSEARCH_VERSION "unknown"
 #endif
 
 
@@ -340,12 +365,12 @@ int luaopen_lite_xl_native(lua_State* L, void* XL) {
 #else
 int luaopen_native(lua_State* L) {
 #endif
-  luaL_newlib(L, search_api);
+  luaL_newmetatable(L, "highperfsearch");
+  luaL_setfuncs(L, search_api, 0);
   lua_pushliteral(L, HIGHPERFSEARCH_VERSION);
   lua_setfield(L, -2, "version");
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
   lua_pushvalue(L, -1);
-  luaL_setmetatable(L, "highperfsearch");
   return 1;
 }
