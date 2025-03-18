@@ -1,7 +1,7 @@
 {
   "addons": [{
     "id": "hpprojectsearch",
-    "version": "0.1",
+    "version": "0.05",
     "path": "plugins/hpprojectsearch",
     "description": "A high performance version of `projectsearch`.",
     "tags": ["performance"],
