@@ -189,6 +189,7 @@ static void* thread_callback(void* data) {
           int length_read = fread(&chunk[offset], 1, length_to_read, file);
           if (length_read <= 0)
             break;
+            
           int total_length = offset + length_read;
           if (total_length < search_length)
             break;
@@ -332,7 +333,7 @@ static int f_search_find(lua_State* L) {
 
 static int f_search_joink(lua_State* L, int status, lua_KContext ctx) {
   search_state_t* state = luaL_checkudata(L, 1, "highperfsearch");
-  if (state->threads_complete == state->thread_count) {
+  if (state->threads_complete < state->thread_count) {
     for (int i = 0; i < state->thread_count; ++i) {
       if (state->threads[i]) {
         join_thread(state->threads[i]);
