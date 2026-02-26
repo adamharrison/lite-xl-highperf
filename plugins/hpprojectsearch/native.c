@@ -333,13 +333,14 @@ static int f_search_find(lua_State* L) {
 
 static int f_search_joink(lua_State* L, int status, lua_KContext ctx) {
   search_state_t* state = luaL_checkudata(L, 1, "highperfsearch");
-  if (state->threads_complete < state->thread_count) {
+  if (state->threads_complete == state->thread_count) {
     for (int i = 0; i < state->thread_count; ++i) {
       if (state->threads[i]) {
         join_thread(state->threads[i]);
         state->threads[i] = NULL;
       }
     }
+    f_search_update(L);
     return 0;
   }
   f_search_update(L);
