@@ -5,28 +5,28 @@
       "files": [
         {
           "arch": "x86_64-linux",
-          "checksum": "48d006787affa1bdbced1f6b37d8b2bd077456e4a2e5fd665c14587d2c89b890",
-          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.1/hpprojectsearch.x86_64-linux.so"
+          "checksum": "271ef326551bf87f624188a112a7bab011f067caed37b65a8b534f7829987fd3",
+          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.2/hpprojectsearch.x86_64-linux.so"
         },
         {
           "arch": "aarch64-linux",
-          "checksum": "ad58b534b458b9f945609905194984f308de1dc003377fcd9b7eee9441eedfa4",
-          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.1/hpprojectsearch.aarch64-linux.so"
+          "checksum": "52b0040fbcd6cba8f3c60845008a352011c11976cbcc6f11976c8df509960149",
+          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.2/hpprojectsearch.aarch64-linux.so"
         },
         {
           "arch": "x86_64-darwin",
-          "checksum": "3bfec0c2f32239a172d8786996bf6c31b37471621161a4b8d3b7c93088bf504f",
-          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.1/hpprojectsearch.x86_64-darwin.so"
+          "checksum": "cc756d5347b560f4da2952f93247e79574b608dca3b635bfe7387a7ba7e1f129",
+          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.2/hpprojectsearch.x86_64-darwin.so"
         },
         {
           "arch": "aarch64-darwin",
-          "checksum": "4d3bc63f375822670efa03166a8cd07638f6e41837c6f8efd1da3a3f3eb2468d",
-          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.1/hpprojectsearch.aarch64-darwin.so"
+          "checksum": "696250fb95d781585e83da45e90766deb1eabdc33be2094c30eac5f0d288d9e4",
+          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.2/hpprojectsearch.aarch64-darwin.so"
         },
         {
           "arch": "x86_64-windows",
-          "checksum": "f1f33d97a2ac0e7d7b99ba222bb81284ec002c5bc5469c1785a4cf612db96280",
-          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.1/hpprojectsearch.x86_64-windows.dll"
+          "checksum": "9cf58e810fbb860ce23bf6958045d90a4cab33cfaf60619a0ffb97c87021868d",
+          "url": "https://github.com/adamharrison/lite-xl-highperf/releases/download/v0.2/hpprojectsearch.x86_64-windows.dll"
         }
       ],
       "id": "hpprojectsearch",
@@ -34,7 +34,7 @@
       "tags": [
         "performance"
       ],
-      "version": "0.1"
+      "version": "0.2"
     }
   ]
 }
