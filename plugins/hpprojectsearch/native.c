@@ -128,7 +128,7 @@ static int msleep(int miliseconds) {
 }
 
 #define SEARCH_CONTEXT_LENGTH 80
-#define MAX_SEARCH_HIT_LENGTH 256
+#define MAX_SEARCH_HIT_LENGTH 255
 #define MAX_SEARCH_STRING MAX_SEARCH_HIT_LENGTH
 #define CHUNK_SIZE 16384
 
@@ -136,7 +136,7 @@ typedef struct {
   int found_idx;
   int line;
   int col;
-  char text[MAX_SEARCH_HIT_LENGTH];
+  char text[MAX_SEARCH_HIT_LENGTH+1];
 } match_entry_t;
 
 typedef struct {
@@ -239,6 +239,7 @@ static void* thread_callback(void* data) {
                   }
                 }
                 strncpy(state->matches[state->match_count].text, &chunk[start], max_length);
+                state->matches[state->match_count].text[max_length] = 0;
                 ++state->match_count;
               unlock_mutex(state->mutex);
             }
